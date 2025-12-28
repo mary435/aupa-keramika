@@ -2,7 +2,18 @@
 
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, X, Truck, ShieldCheck, Instagram, Mail, Phone, MapPin, Minus, Plus } from "lucide-react";
+import {
+  ShoppingBag,
+  X,
+  Truck,
+  ShieldCheck,
+  Instagram,
+  Mail,
+  Phone,
+  MapPin,
+  Minus,
+  Plus,
+} from "lucide-react";
 
 /**
  * Aupa Keramika — MVP de tienda para “link en bio” (Instagram)
@@ -12,8 +23,37 @@ import { ShoppingBag, X, Truck, ShieldCheck, Instagram, Mail, Phone, MapPin, Min
  * - Para producción real: conectar a pasarela (Mercado Pago / Stripe) y a un backend
  */
 
+type Product = {
+  id: string;
+  title: string;
+  priceARS: number;
+  currency: "ARS";
+  stock: number;
+  dimensions: string;
+  weight: string;
+  description: string;
+  care: string;
+  photos: string[];
+  tags?: string[];
+};
+
+type CartItem = {
+  id: string;
+  title: string;
+  priceARS: number;
+  qty: number;
+  stock: number;
+  thumb?: string;
+};
+
+type BuildWhatsAppArgs = {
+  items: Array<Pick<CartItem, "title" | "qty" | "priceARS">>;
+  subtotal: number;
+  shippingZone?: string;
+};
+
 // 1) Cargá tus productos acá. Recomendación: fotos 1200x1200px.
-const PRODUCTS = [
+const PRODUCTS: Product[] = [
   {
     id: "ak-001",
     title: "Taza Nube",
@@ -57,8 +97,7 @@ const PRODUCTS = [
     stock: 1,
     dimensions: "10 cm alto × 7 cm diámetro",
     weight: "300 g",
-    description:
-      "Vaso de pared fina con esmalte satinado. Pieza única.",
+    description: "Vaso de pared fina con esmalte satinado. Pieza única.",
     care: "Apto lavavajillas. Evitar cambios bruscos de temperatura.",
     photos: [
       "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=1200&q=80",
@@ -73,13 +112,13 @@ const BRAND = {
   name: "Aupa Keramika",
   instagramHandle: "@aupa.keramica",
   instagramUrl: "https://www.instagram.com/aupa.keramica/",
-  whatsappNumberE164: "+5493515168426", // TODO: reemplazar (formato internacional)
-  supportEmail: "aupakeramika@gmail.com", // TODO: reemplazar
+  whatsappNumberE164: "+5493515168426",
+  supportEmail: "aupakeramika@gmail.com",
   location: "Córdoba, Argentina",
-  mercadoPagoLink: "https://link.mercadopago.com.ar/aupa.keramika", // TODO: reemplazar
+  mercadoPagoLink: "https://link.mercadopago.com.ar/aupa.keramika",
 };
 
-function formatARS(value) {
+function formatARS(value: number): string {
   try {
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
@@ -91,11 +130,15 @@ function formatARS(value) {
   }
 }
 
-function classNames(...xs) {
+function classNames(...xs: Array<string | false | null | undefined>): string {
   return xs.filter(Boolean).join(" ");
 }
 
-function buildWhatsAppCheckoutMessage({ items, subtotal, shippingZone }) {
+function buildWhatsAppCheckoutMessage({
+  items,
+  subtotal,
+  shippingZone,
+}: BuildWhatsAppArgs): string {
   const lines = [
     `Hola! Quiero comprar en ${BRAND.name}.`,
     "",
@@ -113,19 +156,28 @@ function buildWhatsAppCheckoutMessage({ items, subtotal, shippingZone }) {
   return encodeURIComponent(lines.join("\n"));
 }
 
-function clampQty(qty, stock) {
+function clampQty(qty: number, stock?: number | null): number {
   if (qty < 1) return 1;
   if (stock != null && qty > stock) return stock;
   return qty;
 }
 
-export default function AupaKeramikaStorefront() {
-  const [activeProduct, setActiveProduct] = useState(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [cart, setCart] = useState(() => /** @type {Record<string, number>} */ ({}));
+type CheckoutState = {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  notes: string;
+  payment: "transferencia" | "mercadopago" | "whatsapp";
+};
 
-  const [shippingZone, setShippingZone] = useState("Córdoba Capital");
-  const [checkout, setCheckout] = useState({
+export default function AupaKeramikaStorefront() {
+  const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const [cartOpen, setCartOpen] = useState<boolean>(false);
+  const [cart, setCart] = useState<Record<string, number>>({});
+
+  const [shippingZone, setShippingZone] = useState<string>("Córdoba Capital");
+  const [checkout, setCheckout] = useState<CheckoutState>({
     fullName: "",
     email: "",
     phone: "",
@@ -135,17 +187,17 @@ export default function AupaKeramikaStorefront() {
   });
 
   const productsById = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, Product>();
     for (const p of PRODUCTS) map.set(p.id, p);
     return map;
   }, []);
 
-  const cartItems = useMemo(() => {
+  const cartItems = useMemo<CartItem[]>(() => {
     return Object.entries(cart)
       .map(([id, qty]) => {
         const p = productsById.get(id);
         if (!p) return null;
-        return {
+        const item: CartItem = {
           id,
           title: p.title,
           priceARS: p.priceARS,
@@ -153,21 +205,22 @@ export default function AupaKeramikaStorefront() {
           stock: p.stock,
           thumb: p.photos?.[0],
         };
+        return item;
       })
-      .filter(Boolean);
+      .filter((x): x is CartItem => x !== null);
   }, [cart, productsById]);
 
-  const cartCount = useMemo(
+  const cartCount = useMemo<number>(
     () => cartItems.reduce((acc, i) => acc + i.qty, 0),
     [cartItems]
   );
 
-  const subtotal = useMemo(
+  const subtotal = useMemo<number>(
     () => cartItems.reduce((acc, i) => acc + i.priceARS * i.qty, 0),
     [cartItems]
   );
 
-  function addToCart(productId, qty = 1) {
+  function addToCart(productId: string, qty: number = 1) {
     const p = productsById.get(productId);
     if (!p) return;
     setCart((prev) => {
@@ -181,7 +234,7 @@ export default function AupaKeramikaStorefront() {
     setCartOpen(true);
   }
 
-  function setItemQty(productId, qty) {
+  function setItemQty(productId: string, qty: number) {
     const p = productsById.get(productId);
     if (!p) return;
     setCart((prev) => {
@@ -192,7 +245,7 @@ export default function AupaKeramikaStorefront() {
     });
   }
 
-  function removeFromCart(productId) {
+  function removeFromCart(productId: string) {
     setCart((prev) => {
       const next = { ...prev };
       delete next[productId];
@@ -223,7 +276,9 @@ export default function AupaKeramikaStorefront() {
               AK
             </div>
             <div className="leading-tight">
-              <div className="text-sm tracking-wide text-neutral-600">Piezas únicas</div>
+              <div className="text-sm tracking-wide text-neutral-600">
+                Piezas únicas
+              </div>
               <div className="text-lg font-semibold">{BRAND.name}</div>
             </div>
           </div>
@@ -270,8 +325,8 @@ export default function AupaKeramikaStorefront() {
               Cerámica contemporánea, hecha a mano. Cada pieza es irrepetible.
             </motion.h1>
             <p className="mt-4 max-w-prose text-neutral-700">
-              Selección curada de piezas únicas. Comprá directo desde el link en bio y coordinamos
-              envío a todo el país.
+              Selección curada de piezas únicas. Comprá directo desde el link en
+              bio y coordinamos envío a todo el país.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -290,13 +345,21 @@ export default function AupaKeramikaStorefront() {
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <InfoPill icon={<Truck className="h-4 w-4" />} title="Envíos" text="A todo Argentina" />
+              <InfoPill
+                icon={<Truck className="h-4 w-4" />}
+                title="Envíos"
+                text="A todo Argentina"
+              />
               <InfoPill
                 icon={<ShieldCheck className="h-4 w-4" />}
                 title="Empaque"
                 text="Protección reforzada"
               />
-              <InfoPill icon={<MapPin className="h-4 w-4" />} title="Origen" text={BRAND.location} />
+              <InfoPill
+                icon={<MapPin className="h-4 w-4" />}
+                title="Origen"
+                text={BRAND.location}
+              />
             </div>
           </div>
 
@@ -309,7 +372,9 @@ export default function AupaKeramikaStorefront() {
                 className="h-[360px] w-full object-cover"
               />
               <div className="p-5">
-                <div className="text-sm text-neutral-600">Ediciones pequeñas • Producción artesanal</div>
+                <div className="text-sm text-neutral-600">
+                  Ediciones pequeñas • Producción artesanal
+                </div>
                 <div className="mt-1 text-lg font-semibold">Hecho para durar</div>
                 <div className="mt-2 text-sm text-neutral-700">
                   Gres. Esmaltes alimentarios. Terminaciones mate y satinadas.
@@ -329,7 +394,9 @@ export default function AupaKeramikaStorefront() {
               Todas las piezas son únicas. Stock limitado a 1 unidad por ítem.
             </p>
           </div>
-          <div className="hidden md:block text-sm text-neutral-600">Actualizado: hoy</div>
+          <div className="hidden md:block text-sm text-neutral-600">
+            Actualizado: hoy
+          </div>
         </div>
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -366,8 +433,12 @@ export default function AupaKeramikaStorefront() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-base font-semibold">{formatARS(p.priceARS)}</div>
-                      <div className="text-xs text-neutral-600">{p.stock > 0 ? "Disponible" : "Agotado"}</div>
+                      <div className="text-base font-semibold">
+                        {formatARS(p.priceARS)}
+                      </div>
+                      <div className="text-xs text-neutral-600">
+                        {p.stock > 0 ? "Disponible" : "Agotado"}
+                      </div>
                     </div>
                   </div>
 
@@ -453,11 +524,18 @@ export default function AupaKeramikaStorefront() {
           <div className="mt-10 rounded-[2rem] border border-neutral-200 bg-[#faf9f7] p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-sm text-neutral-600">¿Dudas o compras por mensaje?</div>
-                <div className="text-xl font-semibold">Te atendemos por WhatsApp</div>
+                <div className="text-sm text-neutral-600">
+                  ¿Dudas o compras por mensaje?
+                </div>
+                <div className="text-xl font-semibold">
+                  Te atendemos por WhatsApp
+                </div>
               </div>
               <a
-                href={`https://wa.me/${BRAND.whatsappNumberE164.replace(/\D/g, "")}?text=${encodeURIComponent(
+                href={`https://wa.me/${BRAND.whatsappNumberE164.replace(
+                  /\D/g,
+                  ""
+                )}?text=${encodeURIComponent(
                   `Hola! Quiero consultar por piezas de ${BRAND.name}.`
                 )}`}
                 target="_blank"
@@ -501,9 +579,15 @@ export default function AupaKeramikaStorefront() {
             <div className="text-sm text-neutral-700">
               <div className="font-semibold text-neutral-900">Contacto</div>
               <div className="mt-3 grid gap-2">
-                <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {BRAND.location}</div>
-                <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {BRAND.whatsappNumberE164}</div>
-                <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {BRAND.supportEmail}</div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> {BRAND.location}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" /> {BRAND.whatsappNumberE164}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" /> {BRAND.supportEmail}
+                </div>
               </div>
             </div>
 
@@ -511,21 +595,31 @@ export default function AupaKeramikaStorefront() {
               <div className="font-semibold text-neutral-900">Legales</div>
               <ul className="mt-3 list-disc pl-5 space-y-2">
                 <li>Los tonos pueden variar levemente según pantalla.</li>
-                <li>Al ser piezas artesanales, pueden presentar pequeñas variaciones propias del proceso.</li>
-                <li>Reclamos por rotura en envío: reportar dentro de 24 hs con fotos del empaque.</li>
+                <li>
+                  Al ser piezas artesanales, pueden presentar pequeñas
+                  variaciones propias del proceso.
+                </li>
+                <li>
+                  Reclamos por rotura en envío: reportar dentro de 24 hs con
+                  fotos del empaque.
+                </li>
               </ul>
             </div>
           </div>
 
           <div className="mt-8 flex flex-col gap-2 border-t border-neutral-200/70 pt-6 text-xs text-neutral-600 sm:flex-row sm:items-center sm:justify-between">
-            <div>© {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.</div>
+            <div>
+              © {new Date().getFullYear()} {BRAND.name}. Todos los derechos
+              reservados.
+            </div>
             <div className="flex flex-wrap gap-4">
-              <a href="#catalogo" className="hover:text-neutral-900">Catálogo</a>
-              <a href="#envios" className="hover:text-neutral-900">Envíos</a>
-              <button
-                onClick={() => setCartOpen(true)}
-                className="hover:text-neutral-900"
-              >
+              <a href="#catalogo" className="hover:text-neutral-900">
+                Catálogo
+              </a>
+              <a href="#envios" className="hover:text-neutral-900">
+                Envíos
+              </a>
+              <button onClick={() => setCartOpen(true)} className="hover:text-neutral-900">
                 Carrito
               </button>
             </div>
@@ -554,7 +648,9 @@ export default function AupaKeramikaStorefront() {
               <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
                 <div>
                   <div className="text-lg font-semibold">{activeProduct.title}</div>
-                  <div className="text-sm text-neutral-600">{formatARS(activeProduct.priceARS)}</div>
+                  <div className="text-sm text-neutral-600">
+                    {formatARS(activeProduct.priceARS)}
+                  </div>
                 </div>
                 <button
                   onClick={() => setActiveProduct(null)}
@@ -577,12 +673,23 @@ export default function AupaKeramikaStorefront() {
                 <div className="p-6">
                   <div className="text-sm text-neutral-600">Detalles</div>
                   <div className="mt-2 grid gap-2 text-sm text-neutral-800">
-                    <div><span className="text-neutral-600">Dimensiones:</span> {activeProduct.dimensions}</div>
-                    <div><span className="text-neutral-600">Peso:</span> {activeProduct.weight}</div>
-                    <div><span className="text-neutral-600">Stock:</span> {activeProduct.stock > 0 ? "1 disponible" : "Agotado"}</div>
+                    <div>
+                      <span className="text-neutral-600">Dimensiones:</span>{" "}
+                      {activeProduct.dimensions}
+                    </div>
+                    <div>
+                      <span className="text-neutral-600">Peso:</span>{" "}
+                      {activeProduct.weight}
+                    </div>
+                    <div>
+                      <span className="text-neutral-600">Stock:</span>{" "}
+                      {activeProduct.stock > 0 ? "1 disponible" : "Agotado"}
+                    </div>
                   </div>
 
-                  <p className="mt-4 text-sm text-neutral-700">{activeProduct.description}</p>
+                  <p className="mt-4 text-sm text-neutral-700">
+                    {activeProduct.description}
+                  </p>
 
                   <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
                     <div className="font-medium text-neutral-900">Cuidados</div>
@@ -613,7 +720,8 @@ export default function AupaKeramikaStorefront() {
                   </div>
 
                   <div className="mt-4 text-xs text-neutral-600">
-                    Consejo: publicá el mismo ID del producto ({activeProduct.id}) en el post de Instagram.
+                    Consejo: publicá el mismo ID del producto ({activeProduct.id})
+                    en el post de Instagram.
                   </div>
                 </div>
               </div>
@@ -672,8 +780,12 @@ export default function AupaKeramikaStorefront() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold">{i.title}</div>
-                                <div className="text-xs text-neutral-600">{formatARS(i.priceARS)}</div>
+                                <div className="truncate text-sm font-semibold">
+                                  {i.title}
+                                </div>
+                                <div className="text-xs text-neutral-600">
+                                  {formatARS(i.priceARS)}
+                                </div>
                               </div>
                               <button
                                 onClick={() => removeFromCart(i.id)}
@@ -692,7 +804,9 @@ export default function AupaKeramikaStorefront() {
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
-                                <div className="w-8 text-center text-sm font-semibold">{i.qty}</div>
+                                <div className="w-8 text-center text-sm font-semibold">
+                                  {i.qty}
+                                </div>
                                 <button
                                   onClick={() => setItemQty(i.id, i.qty + 1)}
                                   className="rounded-xl bg-white p-1 hover:bg-neutral-50"
@@ -701,7 +815,9 @@ export default function AupaKeramikaStorefront() {
                                   <Plus className="h-4 w-4" />
                                 </button>
                               </div>
-                              <div className="text-sm font-semibold">{formatARS(i.priceARS * i.qty)}</div>
+                              <div className="text-sm font-semibold">
+                                {formatARS(i.priceARS * i.qty)}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -732,7 +848,10 @@ export default function AupaKeramikaStorefront() {
                           <input
                             value={checkout.fullName}
                             onChange={(e) =>
-                              setCheckout((s) => ({ ...s, fullName: e.target.value }))
+                              setCheckout((s) => ({
+                                ...s,
+                                fullName: e.target.value,
+                              }))
                             }
                             placeholder="Ej: Aupa"
                             className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
@@ -742,7 +861,10 @@ export default function AupaKeramikaStorefront() {
                           <input
                             value={checkout.email}
                             onChange={(e) =>
-                              setCheckout((s) => ({ ...s, email: e.target.value }))
+                              setCheckout((s) => ({
+                                ...s,
+                                email: e.target.value,
+                              }))
                             }
                             placeholder="tu@email.com"
                             className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
@@ -755,7 +877,10 @@ export default function AupaKeramikaStorefront() {
                           <input
                             value={checkout.phone}
                             onChange={(e) =>
-                              setCheckout((s) => ({ ...s, phone: e.target.value }))
+                              setCheckout((s) => ({
+                                ...s,
+                                phone: e.target.value,
+                              }))
                             }
                             placeholder="+54 9 ..."
                             className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
@@ -765,7 +890,10 @@ export default function AupaKeramikaStorefront() {
                           <select
                             value={checkout.payment}
                             onChange={(e) =>
-                              setCheckout((s) => ({ ...s, payment: e.target.value }))
+                              setCheckout((s) => ({
+                                ...s,
+                                payment: e.target.value as CheckoutState["payment"],
+                              }))
                             }
                             className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
                           >
@@ -780,7 +908,10 @@ export default function AupaKeramikaStorefront() {
                         <input
                           value={checkout.address}
                           onChange={(e) =>
-                            setCheckout((s) => ({ ...s, address: e.target.value }))
+                            setCheckout((s) => ({
+                              ...s,
+                              address: e.target.value,
+                            }))
                           }
                           placeholder="Calle, número, localidad, provincia"
                           className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
@@ -838,9 +969,7 @@ export default function AupaKeramikaStorefront() {
                       </a>
 
                       <button
-                        onClick={() => {
-                          setCart({});
-                        }}
+                        onClick={() => setCart({})}
                         className={classNames(
                           "rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-900 hover:bg-neutral-50",
                           cartItems.length ? "" : "opacity-50 cursor-not-allowed"
@@ -851,8 +980,8 @@ export default function AupaKeramikaStorefront() {
                       </button>
 
                       <div className="text-xs text-neutral-600">
-                        Para automatizar stock, pagos y envíos, conectá esta UI a una pasarela (Mercado
-                        Pago/Stripe) y a un backend.
+                        Para automatizar stock, pagos y envíos, conectá esta UI a una
+                        pasarela (Mercado Pago/Stripe) y a un backend.
                       </div>
                     </div>
                   </div>
@@ -866,7 +995,15 @@ export default function AupaKeramikaStorefront() {
   );
 }
 
-function InfoPill({ icon, title, text }) {
+function InfoPill({
+  icon,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-[1.75rem] border border-neutral-200 bg-white px-4 py-3 shadow-sm">
       <div className="grid h-9 w-9 place-items-center rounded-2xl bg-neutral-900 text-neutral-50">
@@ -880,7 +1017,15 @@ function InfoPill({ icon, title, text }) {
   );
 }
 
-function PolicyCard({ title, icon, items }) {
+function PolicyCard({
+  title,
+  icon,
+  items,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: string[];
+}) {
   return (
     <div className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3">
@@ -901,7 +1046,13 @@ function PolicyCard({ title, icon, items }) {
   );
 }
 
-function Field({ label, children }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="grid gap-1">
       <span className="text-xs font-medium text-neutral-700">{label}</span>
