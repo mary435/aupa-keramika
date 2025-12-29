@@ -131,7 +131,7 @@ export default function AupaKeramikaStorefront() {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState<boolean>(false);
   const [cart, setCart] = useState<Record<string, number>>({});
-
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [shippingZone, setShippingZone] = useState<string>("Córdoba Capital");
   const [checkout, setCheckout] = useState<CheckoutState>({
     fullName: "",
@@ -323,8 +323,8 @@ export default function AupaKeramikaStorefront() {
             <div className="absolute -inset-4 rounded-[2.5rem] bg-neutral-200/50 blur-2xl" />
             <div className="relative overflow-hidden rounded-[2.5rem] border border-neutral-200 bg-white shadow-sm">
               <img
-                src="https://images.unsplash.com/photo-1496318447583-f524534e9ce1?auto=format&fit=crop&w=1600&q=80"
-                alt="Cerámica minimal"
+                src="/hero/aupa-keramika-hero.jpg"
+                alt="Aupa Keramika – cerámica artesanal"
                 className="h-[360px] w-full object-cover"
               />
               <div className="p-5">
@@ -431,6 +431,7 @@ export default function AupaKeramikaStorefront() {
                         e.preventDefault();
                         e.stopPropagation();
                         setActiveProduct(p);
+                        setActivePhotoIndex(0);
                       }}
                       className="rounded-2xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
                     >
@@ -619,11 +620,36 @@ export default function AupaKeramikaStorefront() {
 
               <div className="grid gap-0 md:grid-cols-2">
                 <div className="bg-neutral-50">
-                  <img
-                    src={activeProduct.photos?.[0]}
-                    alt={activeProduct.title}
-                    className="h-80 w-full object-cover md:h-full"
-                  />
+                  <div className="bg-neutral-50">
+                    <img
+                      src={activeProduct.photos[activePhotoIndex]}
+                      alt={activeProduct.title}
+                      className="h-80 w-full object-cover md:h-full"
+                    />
+
+                    {activeProduct.photos.length > 1 && (
+                      <div className="flex gap-2 p-3 justify-center bg-white border-t border-neutral-200">
+                        {activeProduct.photos.map((photo, idx) => (
+                          <button
+                            key={photo}
+                            onClick={() => setActivePhotoIndex(idx)}
+                            className={`h-14 w-14 overflow-hidden rounded-xl border ${
+                              idx === activePhotoIndex
+                                ? "border-neutral-900"
+                                : "border-neutral-200"
+                            }`}
+                          >
+                            <img
+                              src={photo}
+                              alt={`${activeProduct.title} ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
                 <div className="p-6">
@@ -676,8 +702,7 @@ export default function AupaKeramikaStorefront() {
                   </div>
 
                   <div className="mt-4 text-xs text-neutral-600">
-                    Consejo: publicá el mismo ID del producto ({activeProduct.id})
-                    en el post de Instagram.
+                    Consultanos por mas diseños personalizados.
                   </div>
                 </div>
               </div>
