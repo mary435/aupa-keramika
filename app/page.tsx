@@ -1,5 +1,7 @@
 "use client";
 
+import { PRODUCTS } from "../data/products.generated";
+import type { Product } from "../data/products.generated";
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,19 +25,6 @@ import {
  * - Para producción real: conectar a pasarela (Mercado Pago / Stripe) y a un backend
  */
 
-type Product = {
-  id: string;
-  title: string;
-  priceARS: number;
-  currency: "ARS";
-  stock: number;
-  dimensions: string;
-  weight: string;
-  description: string;
-  care: string;
-  photos: string[];
-  tags?: string[];
-};
 
 type CartItem = {
   id: string;
@@ -52,60 +41,7 @@ type BuildWhatsAppArgs = {
   shippingZone?: string;
 };
 
-// 1) Cargá tus productos acá. Recomendación: fotos 1200x1200px.
-const PRODUCTS: Product[] = [
-  {
-    id: "ak-001",
-    title: "Taza Nube",
-    priceARS: 18500,
-    currency: "ARS",
-    stock: 1,
-    dimensions: "9 cm alto × 8 cm diámetro",
-    weight: "350 g",
-    description:
-      "Pieza única esmaltada. Apta para uso diario. Hecha a mano en Córdoba, Argentina.",
-    care:
-      "Apta microondas y lavavajillas (recomendación: lavado suave para mayor vida del esmalte).",
-    photos: [
-      "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1200&q=80",
-    ],
-    tags: ["Taza", "Esmaltado", "Pieza única"],
-  },
-  {
-    id: "ak-002",
-    title: "Bowl Arena",
-    priceARS: 24000,
-    currency: "ARS",
-    stock: 1,
-    dimensions: "6 cm alto × 14 cm diámetro",
-    weight: "420 g",
-    description:
-      "Bowl de cerámica gres con textura sutil. Ideal para desayuno o snacks.",
-    care: "Apto microondas. Lavado suave recomendado.",
-    photos: [
-      "https://images.unsplash.com/photo-1546549032-9571cd6b27df?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=1200&q=80",
-    ],
-    tags: ["Bowl", "Gres", "Pieza única"],
-  },
-  {
-    id: "ak-003",
-    title: "Vaso Eclipse",
-    priceARS: 16000,
-    currency: "ARS",
-    stock: 1,
-    dimensions: "10 cm alto × 7 cm diámetro",
-    weight: "300 g",
-    description: "Vaso de pared fina con esmalte satinado. Pieza única.",
-    care: "Apto lavavajillas. Evitar cambios bruscos de temperatura.",
-    photos: [
-      "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1200&q=80",
-    ],
-    tags: ["Vaso", "Satinado"],
-  },
-];
+
 
 // Config básica (editá a tu gusto)
 const BRAND = {
@@ -115,7 +51,7 @@ const BRAND = {
   whatsappNumberE164: "+5493515168426",
   supportEmail: "aupakeramika@gmail.com",
   location: "Córdoba, Argentina",
-  mercadoPagoLink: "https://link.mercadopago.com.ar/aupa.keramika",
+  mercadoPagoLink: "https://link.mercadopago.com.ar/aupakeramika",
 };
 
 function formatARS(value: number): string {
