@@ -65,6 +65,26 @@ function formatARS(value: number): string {
     return `$ ${value}`;
   }
 }
+function formatDims(p: Product): string {
+  const h = p.heightCm;
+  const w = p.widthCm;
+  const d = p.depthCm;
+
+  // Si tenés alto + ancho + profundidad:
+  if (h != null && w != null && d != null) return `${h}×${w}×${d} cm`;
+
+  // Si tenés solo ancho + profundidad (ej. plato/bowl):
+  if (w != null && d != null) return `${w}×${d} cm`;
+
+  // Si tenés solo ancho:
+  if (w != null) return `${w} cm`;
+
+  return "Medidas a confirmar";
+}
+
+function formatWeight(p: Product): string {
+  return p.weightG != null ? `${p.weightG} g` : "Peso a confirmar";
+}
 
 function classNames(...xs: Array<string | false | null | undefined>): string {
   return xs.filter(Boolean).join(" ");
@@ -365,7 +385,7 @@ export default function AupaKeramikaStorefront() {
                     <div>
                       <div className="text-base font-semibold">{p.title}</div>
                       <div className="mt-1 text-sm text-neutral-600">
-                        {p.dimensions} • {p.weight}
+                        {formatDims(p)} • {formatWeight(p)}
                       </div>
                     </div>
                     <div className="text-right">
@@ -611,11 +631,11 @@ export default function AupaKeramikaStorefront() {
                   <div className="mt-2 grid gap-2 text-sm text-neutral-800">
                     <div>
                       <span className="text-neutral-600">Dimensiones:</span>{" "}
-                      {activeProduct.dimensions}
+                      {formatDims(activeProduct)}
                     </div>
                     <div>
                       <span className="text-neutral-600">Peso:</span>{" "}
-                      {activeProduct.weight}
+                      {formatWeight(activeProduct)}
                     </div>
                     <div>
                       <span className="text-neutral-600">Stock:</span>{" "}
