@@ -1,0 +1,3 @@
+sku,id,title,category,price_ars,stock,height_cm,width_cm,depth_cm,weight_g,shipping_class,finish,food_safe,microwave_safe,dishwasher_safe,description,care,tags,photos,
+AK-0001,ak-0001,"Taza Nube","Tazas",18500,1,9,8,8,350,"small","satinado",true,true,true,"Pieza única esmaltada. Apta para uso diario. Hecha a mano en Córdoba, Argentina.","Apta microondas y lavavajillas (lavado suave recomendado).","Taza|Esmaltado|Pieza única","IMG_1.jpg|IMG_1.jpg",
+AK-0002,ak-0002,"Bowl Arena","Bowls",24000,0,6,14,14,420,"medium","mate",true,true,false,"Bowl de cerámica gres con textura sutil. Ideal para desayuno o snacks.","Apto microondas. Lavado suave recomendado.","Bowl|Gres|Pieza única","IMG_1.jpg",
